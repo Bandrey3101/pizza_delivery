@@ -7,10 +7,8 @@ from data_base import sqlite_pizza
 
 # @dp.message_handler(commands=['start', 'help'])
 async def command_start(message: types.Message):
-    try:
-        await bot.send_message(message.from_user.id, "Приступаем)", reply_markup=kb_client)
-    except:
-        await message.reply("Общение с ботом через ЛС, напиши ему\nhttps://t.me/pizzabandreybot")
+    await bot.send_message(message.from_user.id, "Приступаем)", reply_markup=kb_client)
+
 
 
 # @dp.message_handler(commands=['Режим_работы'])
