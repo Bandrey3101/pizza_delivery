@@ -3,7 +3,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
 from aiogram import types, Dispatcher
 from create_bot import dp, bot
-from data_base import sqlite_pizza, sqlite_sushi, sqlite_drink, sqlite_ssushi_set
+from data_base import sqlite_pizza
 from keyboards import admin_kb
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -14,6 +14,7 @@ class FSMAdmin(StatesGroup):
     name = State()
     description = State()
     price = State()
+    delete = State()
 
 
 ID = None
@@ -34,6 +35,14 @@ async def choose_product(message: types.Message):
         await bot.send_message(message.from_user.id, 'Куда загружаем?',
                                reply_markup=admin_kb.button_case_admin2)
         await FSMAdmin.product.set()
+
+
+async def delete_prod(message: types.Message):
+    if message.from_user.id == ID:
+        if message.text == "Удалить":
+            await FSMAdmin.delete.set()
+            await choose_del_product()
+
 
 
 # @dp.message_handler(commands='Загрузить', state=None)
@@ -106,13 +115,20 @@ async def del_callback_run(callback_query: types.CallbackQuery):
 
 
 # @dp.message_handler(commands='Удалить')
+async def choose_del_product(message: types.Message):
+    if message.from_user.id == ID:
+        await bot.send_message(message.from_user.id, 'Что удаляем?',
+                               reply_markup=admin_kb.button_case_admin2)
+
+
 async def delete_item(message: types.Message):
     if message.from_user.id == ID:
-        read = await sqlite_pizza.sql_read2()
+        read = await sqlite_pizza.sql_read2(product=message.text)
         for ret in read:
-            await bot.send_photo(message.from_user.id, ret[0], f'{ret[1]}\nОписание: {ret[2]}\nЦена {ret[-1]}')
-            await bot.send_message(message.from_user.id, text='^^^', reply_markup=InlineKeyboardMarkup().\
-                                   add(InlineKeyboardButton(f'Удалить {ret[1]}', callback_data=f'del {ret[1]}')))
+            await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена {ret[-1]}')
+            await bot.send_message(message.from_user.id, text='^^^', reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {ret[2]}', callback_data=f'del {ret[2]}')))
+
+menu2 = ('Пицца', 'Напитки', 'Роллы')
 
 
 # Регистрируем хендлеры
@@ -127,5 +143,6 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_description, state=FSMAdmin.description)
     dp.register_message_handler(load_price, state=FSMAdmin.price)
     dp.register_callback_query_handler(del_callback_run, (lambda x: x.data and x.data.startswith('del ')))
-    dp.register_message_handler(delete_item, text='Удалить')
+    dp.register_message_handler(choose_del_product, text='Удалить')
+    dp.register_message_handler(delete_item, text=menu2)
 
