@@ -17,7 +17,9 @@ class FSMAdmin(StatesGroup):
     delete = State()
 
 
+
 ID = None
+
 
 # Начало диалога загрузки новой позиции
 
@@ -37,24 +39,7 @@ async def choose_product(message: types.Message):
         await FSMAdmin.product.set()
 
 
-async def delete_prod(message: types.Message):
-    if message.from_user.id == ID:
-        if message.text == "Удалить":
-            await FSMAdmin.delete.set()
-            await choose_del_product()
-
-
-
-# @dp.message_handler(commands='Загрузить', state=None)
-async def begin(message: types.Message, state: FSMContext):
-    if message.from_user.id == ID:
-        async with state.proxy() as data:
-            data['product'] = message.text
-        await FSMAdmin.next()
-        await message.reply('Загрузите фото')
-
-
-#Отмена ввода
+# Отмена ввода
 # @dp.message_handler(state="*", commands='отмена')
 # @dp.message_handler(Text(equals='отмена', ignore_case=True), state="*")
 async def cancel_handler(message: types.Message, state: FSMContext):
@@ -65,6 +50,14 @@ async def cancel_handler(message: types.Message, state: FSMContext):
         await state.finish()
         await message.reply('OK')
         await password(message)
+
+
+async def begin(message: types.Message, state: FSMContext):
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            data['product'] = message.text
+        await FSMAdmin.next()
+        await message.reply('Загрузите фото')
 
 
 # Ловим первый ответ и пишем словарь
@@ -105,28 +98,34 @@ async def load_price(message: types.Message, state: FSMContext):
             data['price'] = float(message.text)
         await sqlite_pizza.sql_add_command(state)
         await message.reply('Готово!')
-        await state.finish()
+        await FSMAdmin.product.set()
+        #await state.finish()
 
 
 # @dp.callback_query_handlers(lambda x: x.data and x.data.startwith('del '))
-async def del_callback_run(callback_query: types.CallbackQuery):
+async def del_callback_run(callback_query: types.CallbackQuery, state: FSMContext):
     await sqlite_pizza.sql_delete_command(callback_query.data.replace('del ', ''))
     await callback_query.answer(text=f'{callback_query.data.replace("del ", "")} удалена.', show_alert=True)
+    await FSMAdmin.delete.set()
 
 
-# @dp.message_handler(commands='Удалить')
 async def choose_del_product(message: types.Message):
-    if message.from_user.id == ID:
-        await bot.send_message(message.from_user.id, 'Что удаляем?',
+    await bot.send_message(message.from_user.id, 'Что удаляем?',
                                reply_markup=admin_kb.button_case_admin2)
+    await FSMAdmin.delete.set()
 
 
-async def delete_item(message: types.Message):
-    if message.from_user.id == ID:
-        read = await sqlite_pizza.sql_read2(product=message.text)
-        for ret in read:
-            await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена {ret[-1]}')
-            await bot.send_message(message.from_user.id, text='^^^', reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton(f'Удалить {ret[2]}', callback_data=f'del {ret[2]}')))
+async def delete_item(message: types.Message, state: FSMContext):
+    await sqlite_pizza.sql_read2(message, product=message.text)
+    await FSMAdmin.delete.set()
+        # read = await sqlite_pizza.sql_read2(message, product=message.text)
+        # for ret in read:
+        #     await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена '
+        #                                                        f'{ret[-1]}')
+        #     await bot.send_message(message.from_user.id, text='^^^', reply_markup=InlineKeyboardMarkup().
+        #                            add(InlineKeyboardButton(f'Удалить {ret[2]}',
+        #                                                     callback_data=f'del {ret[2]}')))
+
 
 menu2 = ('Пицца', 'Напитки', 'Роллы')
 
@@ -135,14 +134,14 @@ menu2 = ('Пицца', 'Напитки', 'Роллы')
 def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(password, commands='123')
     dp.register_message_handler(choose_product, text='Загрузить', state=None)
-    dp.register_message_handler(begin, state=FSMAdmin.product)
     dp.register_message_handler(cancel_handler, state="*", commands='Отмена')
     dp.register_message_handler(cancel_handler, Text(equals='Отмена', ignore_case=True), state="*")
+    dp.register_message_handler(begin, state=FSMAdmin.product)
     dp.register_message_handler(load_photo, content_types=['photo'], state=FSMAdmin.photo)
     dp.register_message_handler(load_name, state=FSMAdmin.name)
     dp.register_message_handler(load_description, state=FSMAdmin.description)
     dp.register_message_handler(load_price, state=FSMAdmin.price)
-    dp.register_callback_query_handler(del_callback_run, (lambda x: x.data and x.data.startswith('del ')))
+    dp.register_callback_query_handler(del_callback_run, (lambda x: x.data and x.data.startswith('del ')),
+                                       state=FSMAdmin.delete)
     dp.register_message_handler(choose_del_product, text='Удалить')
-    dp.register_message_handler(delete_item, text=menu2)
-
+    dp.register_message_handler(delete_item, text=menu2, state=FSMAdmin.delete)

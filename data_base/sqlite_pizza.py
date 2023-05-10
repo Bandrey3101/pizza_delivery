@@ -1,5 +1,6 @@
 import sqlite3 as sq
 from create_bot import dp, bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
 def sql_start():
@@ -29,8 +30,17 @@ async def sql_read(message, product):
 #         await bot.send_photo(message.from_user.id, ret[0], f'{ret[1]}\nОписание: {ret[2]}\n Цена: {ret[-1]}')
 
 
-async def sql_read2(product):
-    return cur.execute("SELECT * FROM menu WHERE product == ?", (product,)).fetchall()
+# async def sql_read2(product):
+#     return cur.execute("SELECT * FROM menu WHERE product == ?", (product,)).fetchall()
+
+
+async def sql_read2(message, product):
+    for ret in cur.execute("SELECT * FROM menu WHERE product == ?", (product,)).fetchall():
+        await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена '
+                                                           f'{ret[-1]}')
+        await bot.send_message(message.from_user.id, text='^^^', reply_markup=InlineKeyboardMarkup().\
+                               add(InlineKeyboardButton(f'Удалить {ret[2]}',
+                                                        callback_data=f'del {ret[2]}')))
 
 
 async def sql_delete_command(data):
