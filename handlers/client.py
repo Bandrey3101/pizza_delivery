@@ -7,6 +7,7 @@ from handlers import admin
 
 # @dp.message_handler(commands=['start', 'help'])
 async def command_start(message: types.Message):
+    # sqlite_pizza.sql_ids()
     await bot.send_message(message.from_user.id, "Приступаем)", reply_markup=kb_client)
 
 
@@ -29,6 +30,14 @@ async def menu_command(message: types.Message):
 async def pizza_menu_command(message: types.Message):
     await sqlite_pizza.sql_read(message, product=message.text)
 
+
+async def add_basket_cb(callback_query: types.CallbackQuery): #state: FSMContext):
+    await sqlite_pizza.sql_add_id(user_id=callback_query.from_user.id)
+    await sqlite_pizza.sql_basket()
+    await sqlite_pizza.sql_add_product_name(callback_query.data.replace('add ', ''), user_id=callback_query.from_user.id)
+    await callback_query.answer(text=f'{callback_query.data.replace("add ", "")} добавлено.')
+    #await FSMAdmin.delete.set()
+
 menu = ('Пицца', 'Напитки', 'Роллы')
 
 
@@ -39,3 +48,5 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(pizza_place_command, text='Расположение')
     dp.register_message_handler(pizza_menu_command, text=menu)
     dp.register_message_handler(menu_command, text='Меню')
+    dp.register_callback_query_handler(add_basket_cb, (lambda x: x.data and x.data.startswith('add ')))#,
+                                       #state=FSMAdmin.delete)

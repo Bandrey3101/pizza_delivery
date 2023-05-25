@@ -17,13 +17,10 @@ class FSMAdmin(StatesGroup):
     delete = State()
 
 
-
 ID = None
 
 
 # Начало диалога загрузки новой позиции
-
-
 # @dp.message_handler(content_types=['text'])
 async def password(message: types.Message):
     global ID
