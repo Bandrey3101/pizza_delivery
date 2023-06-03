@@ -115,13 +115,6 @@ async def choose_del_product(message: types.Message):
 async def delete_item(message: types.Message, state: FSMContext):
     await sqlite_pizza.sql_read2(message, product=message.text)
     await FSMAdmin.delete.set()
-        # read = await sqlite_pizza.sql_read2(message, product=message.text)
-        # for ret in read:
-        #     await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена '
-        #                                                        f'{ret[-1]}')
-        #     await bot.send_message(message.from_user.id, text='^^^', reply_markup=InlineKeyboardMarkup().
-        #                            add(InlineKeyboardButton(f'Удалить {ret[2]}',
-        #                                                     callback_data=f'del {ret[2]}')))
 
 
 menu2 = ('Пицца', 'Напитки', 'Роллы')
