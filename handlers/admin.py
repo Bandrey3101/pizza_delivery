@@ -92,11 +92,11 @@ async def load_description(message: types.Message, state: FSMContext):
 async def load_price(message: types.Message, state: FSMContext):
     if message.from_user.id == ID:
         async with state.proxy() as data:
-            data['price'] = float(message.text)
+            data['price'] = int(message.text)
         await sqlite_pizza.sql_add_command(state)
         await message.reply('Готово!')
         await FSMAdmin.product.set()
-        #await state.finish()
+        # await state.finish()
 
 
 # @dp.callback_query_handlers(lambda x: x.data and x.data.startwith('del '))
@@ -108,7 +108,7 @@ async def del_callback_run(callback_query: types.CallbackQuery, state: FSMContex
 
 async def choose_del_product(message: types.Message):
     await bot.send_message(message.from_user.id, 'Что удаляем?',
-                               reply_markup=admin_kb.button_case_admin2)
+                           reply_markup=admin_kb.button_case_admin2)
     await FSMAdmin.delete.set()
 
 
@@ -117,7 +117,8 @@ async def delete_item(message: types.Message, state: FSMContext):
     await FSMAdmin.delete.set()
 
 
-menu2 = ('Пицца', 'Напитки', 'Роллы')
+menu2 = ('Пицца', 'Напитки', 'Роллы', 'Приборы/добавки')
+
 
 
 # Регистрируем хендлеры
@@ -135,3 +136,4 @@ def register_handlers_admin(dp: Dispatcher):
                                        state=FSMAdmin.delete)
     dp.register_message_handler(choose_del_product, text='Удалить')
     dp.register_message_handler(delete_item, text=menu2, state=FSMAdmin.delete)
+

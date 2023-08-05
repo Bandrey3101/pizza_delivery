@@ -2,7 +2,7 @@ from __future__ import print_function
 from create_bot import dp
 import logging
 from aiogram.utils import executor
-from handlers import client, admin, other
+from handlers import client, admin
 from data_base import sqlite_pizza
 logging.basicConfig(level=logging.INFO)
 

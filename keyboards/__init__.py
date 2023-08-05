@@ -1,1 +1,1 @@
-from keyboards.client_kb import kb_client, kb_menu
+from keyboards.client_kb import kb_client, kb_menu, kb_delivery, get_contact, break_kb, back, pay_kb
