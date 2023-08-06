@@ -29,7 +29,7 @@ async def sql_add_command(state):
 
 async def sql_read(message, product):
     for ret in cur.execute("SELECT * FROM menu WHERE product == ?", (product,)).fetchall():
-        await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена: {ret[-1]}',
+        await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена: {ret[-1]}руб.',
                              reply_markup=InlineKeyboardMarkup()
                              .add(InlineKeyboardButton(f'Добавить в корзину {ret[2]}',
                                                        callback_data=f'add {ret[2]}')))
@@ -38,7 +38,7 @@ async def sql_read(message, product):
 async def sql_read2(message, product):
     for ret in cur.execute("SELECT * FROM menu WHERE product == ?", (product,)).fetchall():
         await bot.send_photo(message.from_user.id, ret[1], f'{ret[2]}\nОписание: {ret[3]}\nЦена '
-                                                           f'{ret[-1]}', reply_markup=InlineKeyboardMarkup().
+                                                           f'{ret[-1]}руб', reply_markup=InlineKeyboardMarkup().
                              add(InlineKeyboardButton(f'Удалить {ret[2]}', callback_data=f'del {ret[2]}')))
 
 
@@ -100,5 +100,10 @@ async def sql_delete_user(user_id):
 async def sql_delete_from_basket(user_id):
     cur.execute("DELETE FROM basket WHERE user_id == ?", (user_id,))
     base.commit()
+
+
+async def sql_spam_all():
+    ids = cur.execute("SELECT * FROM ids").fetchall()
+    return ids
 
 

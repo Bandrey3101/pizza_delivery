@@ -15,6 +15,7 @@ class FSMAdmin(StatesGroup):
     description = State()
     price = State()
     delete = State()
+    spam_all = State()
 
 
 ID = None
@@ -43,9 +44,10 @@ async def cancel_handler(message: types.Message, state: FSMContext):
     if message.from_user.id == ID:
         current_state = await state.get_state()
         if current_state is None:
-            return
-        await state.finish()
-        await message.reply('OK')
+            await message.reply('OK')
+        else:
+            await state.finish()
+            await message.reply('OK')
         await password(message)
 
 
@@ -117,8 +119,28 @@ async def delete_item(message: types.Message, state: FSMContext):
     await FSMAdmin.delete.set()
 
 
-menu2 = ('Пицца', 'Напитки', 'Роллы', 'Приборы/добавки')
+async def spam_all(message: types.Message):
+    if message.from_user.id == ID:
+        await bot.send_message(message.chat.id, text='Введите текст рассыылки:',
+                               reply_markup=admin_kb.break_kb)
+        await FSMAdmin.spam_all.set()
 
+
+async def save_spam_all(message: types.Message, state: FSMContext):
+    if message.from_user.id == ID:
+        async with state.proxy() as data:
+            data['spam'] = message.text
+        spam_message = data['spam']
+        await state.finish()
+        for i in await sqlite_pizza.sql_spam_all():
+            try:
+                await bot.send_message(chat_id=i[0], text=spam_message)
+            except:
+                pass
+        await bot.send_message(chat_id=ID, text='Рассылка завершена', reply_markup=admin_kb.button_case_admin2)
+
+
+menu2 = ('Пицца', 'Напитки', 'Роллы', 'Приборы/добавки', 'Роллы (сеты)')
 
 
 # Регистрируем хендлеры
@@ -136,4 +158,5 @@ def register_handlers_admin(dp: Dispatcher):
                                        state=FSMAdmin.delete)
     dp.register_message_handler(choose_del_product, text='Удалить')
     dp.register_message_handler(delete_item, text=menu2, state=FSMAdmin.delete)
-
+    dp.register_message_handler(spam_all, text='Рассылка')
+    dp.register_message_handler(save_spam_all, state=FSMAdmin.spam_all)

@@ -14,6 +14,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from config import YOOTOKEN
 
+
 paytoken = YOOTOKEN
 
 
@@ -59,7 +60,7 @@ async def add_basket_cb(callback_query: types.CallbackQuery):
         await callback_query.answer(text='Товар уже добавлен.')
 
 
-menu = ('Пицца', 'Напитки', 'Роллы')
+menu = ('Пицца', 'Напитки', 'Роллы', 'Приборы/добавки', 'Роллы (сеты)')
 
 
 async def sum_basket(message):
@@ -168,8 +169,8 @@ async def basket_minus(callback_query: types.CallbackQuery):
         await callback_query.answer(text=f'{product_name} удалено 1 шт.')
     except ChatNotFound:
         print('Чат не найден')
-    # except Exception as e:
-    #     print("Произошла неожиданная ошибка:", e)
+    except Exception as e:
+        print("Произошла неожиданная ошибка:", e)
 
 
 async def delivery(callback_query: types.CallbackQuery):
@@ -186,27 +187,28 @@ async def cancel_hand(message: types.Message, state: FSMContext):
 
 
 async def get_delivery(message: types.Message, state: FSMContext):
-    if message.text == 'Доставка':
-        await bot.send_message(message.from_user.id, text='Введите адрес доставки, пожалуйста:',
-                               reply_markup=break_kb)
-        await FSMclient.del_address.set()
-    elif message.text == 'Самовывоз':
-        async with state.proxy() as data:
-            data['user_id'] = message.from_user.id
-            if message.from_user.first_name is None:
-                data['first_name'] = 'Отсутствует'
-            else:
-                data['first_name'] = message.from_user.first_name
-            if message.from_user.username is None:
-                data['username'] = 'Отсутствует'
-            else:
-                data['username'] = message.from_user.username
-            data['del_address'] = 'Самовывоз'
-        await FSMclient.phone_number.set()
-        await bot.send_message(message.from_user.id, text='Введите номер телефона для связи, пожалуйста:',
-                               reply_markup=get_contact)
-    else:
-        await bot.send_message(message.from_user.id, text='Я вас не понимаю, воспользуйтесь клавиатурой внизу')
+    if message.chat.type == 'private':
+        if message.text == 'Доставка':
+            await bot.send_message(message.from_user.id, text='Введите адрес доставки, пожалуйста:',
+                                   reply_markup=break_kb)
+            await FSMclient.del_address.set()
+        elif message.text == 'Самовывоз':
+            async with state.proxy() as data:
+                data['user_id'] = message.from_user.id
+                if message.from_user.first_name is None:
+                    data['first_name'] = 'Отсутствует'
+                else:
+                    data['first_name'] = message.from_user.first_name
+                if message.from_user.username is None:
+                    data['username'] = 'Отсутствует'
+                else:
+                    data['username'] = message.from_user.username
+                data['del_address'] = 'Самовывоз'
+            await FSMclient.phone_number.set()
+            await bot.send_message(message.from_user.id, text='Введите номер телефона для связи, пожалуйста:',
+                                   reply_markup=get_contact)
+        # else:
+        #     await bot.send_message(message.from_user.id, text='Я вас не понимаю, воспользуйтесь клавиатурой внизу')
 
 
 async def get_address(message: types.Message, state: FSMContext):
@@ -275,6 +277,12 @@ async def choose_pay(message: types.Message, state: FSMContext):
                                                        f'@{data["username"]}\n'
                                                        f'Номер телефона: {data["phone_number"]}\nДоставка: '
                                                        f'{data["del_address"]}\nОплата: {data["pay"]}')
+        await bot.send_message(message.from_user.id, text=f'Новый заказ:\n\n{await get_order(message)}\n\nСумма: '
+                                                       f'{await sum_basket(message)}руб.\n\n'
+                                                       f'Клиент: {data["first_name"]}\nUsername: '
+                                                       f'@{data["username"]}\n'
+                                                       f'Номер телефона: {data["phone_number"]}\nДоставка: '
+                                                       f'{data["del_address"]}\nОплата: {data["pay"]}')
         await state.finish()
         await sqlite_pizza.sql_delete_from_basket(user_id=message.from_user.id)
     elif message.text == 'Онлайн':
@@ -305,6 +313,13 @@ async def process_pay(message: types.Message):
                                                      'Спасибо за заказ! В ближайшее время мы свяжемся '
                                                      'с вами для подтверждения!', reply_markup=kb_client)
         for r in await sqlite_pizza.sql_read_users(user_id=message.from_user.id):
+            await bot.send_message(chat_id=410731842,
+                                   text=f'Новый заказ:\n\n{await get_order(message)}\n\nСумма: '
+                                        f'{await sum_basket(message)}руб.\n\n'
+                                        f'Клиент: {r[1]}\nUsername: '
+                                        f'@{r[2]}\n'
+                                        f'Номер телефона: {r[4]}\nДоставка: '
+                                        f'{r[3]}\nОплата: {r[5]}✅')
             await bot.send_message(message.from_user.id,
                                    text=f'Новый заказ:\n\n{await get_order(message)}\n\nСумма: '
                                         f'{await sum_basket(message)}руб.\n\n'
@@ -312,6 +327,7 @@ async def process_pay(message: types.Message):
                                         f'@{r[2]}\n'
                                         f'Номер телефона: {r[4]}\nДоставка: '
                                         f'{r[3]}\nОплата: {r[5]}✅')
+
         await sqlite_pizza.sql_delete_user(user_id=message.from_user.id)
         await sqlite_pizza.sql_delete_from_basket(user_id=message.from_user.id)
 
@@ -330,7 +346,7 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_callback_query_handler(delivery, (lambda x: x.data and x.data.startswith('sum ')))
     dp.register_message_handler(cancel_hand, state="*", commands='Отменить')
     dp.register_message_handler(cancel_hand, Text(equals='Отменить', ignore_case=True), state="*")
-    dp.register_message_handler(get_delivery, state=None)
+    dp.register_message_handler(get_delivery, text=['Доставка', 'Самовывоз'], state=None)
     dp.register_message_handler(get_address, state=FSMclient.del_address)
     dp.register_message_handler(choose_pay, state=FSMclient.pay)
     dp.register_message_handler(get_phone, state=FSMclient.phone_number)
